@@ -1,0 +1,1 @@
+This repository contains the tasks for HW08, including the files assignment8.pdf, bicycle.py and random.py.
