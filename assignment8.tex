@@ -1,0 +1,258 @@
+\documentclass[11pt]{article}
+
+% --- layout & math ---
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{siunitx}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{float}      % for [H]
+\usepackage{placeins}   % \FloatBarrier
+
+\title{HW08}
+\author{Dan Holland}
+\date{December 10, 2025}
+
+\begin{document}
+\maketitle
+
+%==============================
+% Task 1a
+%==============================
+\section{Cycling with Drag}
+
+\subsection{Cycling with Air Drag}
+\subsubsection{Problem summary}
+We extend the no–drag model by adding a quadratic air–drag term to the cyclist’s equation of motion:
+\[
+\frac{dv}{dt} \;=\; \frac{P}{m\,v} \;-\; \frac{1}{2}\,\frac{C_D\,\rho\,A}{m}\,v^2,
+\]
+where the first term represents acceleration from the rider’s power input and the second term is deceleration due to drag (force divided by mass). We use the same initial speed and time window as before and evolve the solution with a forward Euler step. (Code in \texttt{bicycle.py}.) 
+
+\paragraph{Implementation:}
+\begin{itemize}[leftmargin=*]
+  \item Parameters: $v_0=\SI{4}{m/s}$, $m=\SI{70}{kg}$, $P=\SI{400}{W}$, $C_D=0.9$, $\rho=\SI{1.225}{kg/m^3}$, $A=\SI{0.33}{m^2}$.
+  \item Integrator: forward Euler with $\Delta t=\SI{0.1}{s}$ on $t\in[0,200]$ s.
+  \item Output: velocity vs.\ time saved as \texttt{bicycle.png}; plot produced from the code above.  % keep filename exact
+\end{itemize}
+
+\subsubsection{Results}
+\begin{figure}[htb]\centering
+  \includegraphics[width=0.70\linewidth]{bicycle.png}
+  \caption{Cyclist velocity with quadratic air drag. Velocity rises rapidly, then approaches a constant value (terminal speed).}
+  \label{fig:bicycle_drag}
+\end{figure}
+\FloatBarrier
+
+\subsubsection{Discussion}
+Compared to the no–drag case (HW07), where $v(t)$ grew without bound, the drag term makes the curve bend over and level off.
+\begin{itemize}[leftmargin=*]
+  \item Early time: $v$ increases quickly because drag is small at low speed.
+  \item Approach to equilibrium: as $v$ grows, drag $\propto v^2$ increases and increasingly cancels the power term.
+  \item Terminal velocity: set $dv/dt\approx0$ to balance input and losses:
+  \[
+  \frac{P}{m\,v_{\!t}} \;=\; \frac{1}{2}\,\frac{C_D\,\rho\,A}{m}\,v_{\!t}^{2}
+  \quad\Rightarrow\quad
+  v_{\!t} \;=\; \Bigl(\frac{2P}{C_D\,\rho\,A}\Bigr)^{\!1/3}.
+  \]
+  With our numbers, $v_{\!t}\approx \bigl(800/(0.9\cdot1.225\cdot0.33)\bigr)^{1/3}\approx \SI{13}{m/s}$ ($\approx\SI{29}{mph}$), consistent with the plateau in Fig.~\ref{fig:bicycle_drag}.
+  \item Physical interpretation: at $v_{\!t}$ the rider’s power exactly offsets aerodynamic losses, so speed becomes (nearly) constant.
+\end{itemize}
+
+%==============================
+% Task 1b
+%==============================
+\subsection{The Stokes Term}
+
+\subsubsection{Problem summary}
+We add a small linear (viscous) drag term to the air–drag model:
+\[
+\frac{dv}{dt} \;=\; \frac{P}{m\,v}
+\;-\; \frac{1}{2}\,\frac{C_D\rho A}{m}\,v^2
+\;-\; \frac{\eta A}{m h}\,v .
+\]
+The new term is proportional to \(v\) and is expected to matter only at very low speeds. (Code used: \texttt{bicycle.py}.)  % code reference
+
+\paragraph{Implementation:}
+\begin{itemize}[leftmargin=*]
+  \item Parameters: \(v_0=\SI{4}{m/s}\), \(m=\SI{70}{kg}\), \(P=\SI{400}{W}\), \(C_D=0.9\), \(\rho=\SI{1.225}{kg/m^3}\), \(A=\SI{0.33}{m^2}\), \(\eta=SI{2\times10^{-5}}{Pa\,s}\), \(h=\SI{2}{m}\).
+  \item Integrator: forward Euler, \(\Delta t=\SI{0.1}{s}\), \(t\in[0,200]\) s.
+  \item Output: velocity vs.\ time saved as \texttt{bicycle2.png}.
+\end{itemize}
+
+\subsubsection{Results}
+\begin{figure}[htb]\centering
+  \includegraphics[width=0.70\linewidth]{bicycle2.png}
+  \caption{Cyclist velocity with quadratic air drag \emph{and} viscous drag. The curve is essentially the same as Task~1a and approaches a similar terminal speed.}
+  \label{fig:bicycle_drag_visc}
+\end{figure}
+\FloatBarrier
+
+\subsubsection{Discussion}
+Compared to Task~1a (quadratic drag only), adding the viscous term barely changes the curve:
+\begin{itemize}[leftmargin=*]
+  \item Terminal velocity is almost unchanged. The viscous contribution is tiny at normal cycling speeds.
+  \item Why negligible? Magnitude check at \(v=\SI{10}{m/s}\).
+  \[
+  \Bigl|\frac{1}{2}\frac{C_D\rho A}{m}v^2\Bigr|
+  \approx \frac{0.5\cdot0.9\cdot1.225\cdot0.33\cdot10^2}{70}
+  \approx \SI{2.6e-1}{m/s^2},
+  \]
+  while
+  \[
+  \Bigl|\frac{\eta A}{m h}v\Bigr|
+  \approx \frac{(2\times10^{-5})\cdot0.33\cdot10}{70\cdot2}
+  \approx \SI{4.7e-7}{m/s^2}.
+  \]
+  The quadratic term is \(\sim 5\times10^5\) times larger.
+  \item Where would viscous = quadratic?  Solve
+  \(\tfrac{\eta A}{m h}v = \tfrac{1}{2}\tfrac{C_D\rho A}{m}v^2\)
+  \(\Rightarrow v_\ast=\dfrac{2\eta}{C_D\rho h}\).
+  With our numbers: \(v_\ast=\dfrac{2(2\times10^{-5})}{0.9\cdot1.225\cdot2}\approx \SI{1.8e-5}{m/s}\), effectively zero. This confirms the statement that the viscous term is negligible except at the very smallest velocities.
+\end{itemize}
+
+% =========================
+% Task 1c
+% =========================
+\subsection{Cycling with Grade (Uphill/Downhill)}
+
+\subsubsection{Problem summary}
+We include the component of gravity along the road. With grade given in percent, we set
+\[
+\theta=\arctan\!\bigl(\mathrm{grade}/100\bigr),\qquad
+F_{\text{g},x}=m g \sin\theta,
+\]
+so
+\[
+\frac{dv}{dt} \;=\; \frac{P}{m\,v}
+\;-\; \frac{1}{2}\,\frac{C_D\rho A}{m}\,v^2
+\;-\; \frac{\eta A}{m h}\,v
+\;-\; g\sin\theta .
+\]
+For small slopes we use \(\sin\theta\approx\tan\theta\approx\mathrm{grade}/100\).
+
+\paragraph{Implementation:}
+\begin{itemize}[leftmargin=*]
+  \item Parameters as before: \(v_0=\SI{4}{m/s}\), \(m=\SI{70}{kg}\), \(P=\SI{400}{W}\),
+        \(C_D=0.9\), \(\rho=\SI{1.225}{kg/m^3}\), \(A=\SI{0.33}{m^2}\),
+        \(\eta=SI{2\times10^{-5}}{Pa\,s}\), \(h=\SI{2}{m}\), \(g=\SI{9.81}{m/s^2}\).
+  \item Integrator: forward Euler, \(\Delta t=\SI{0.1}{s}\), \(t\in[0,200]\) s.
+  \item Grades explored: \(0\%\) (flat), \(+10\%\) (uphill), \(-10\%\) (downhill), \(+20\%\) (steep uphill).
+\end{itemize}
+
+\subsubsection{Results}
+\begin{figure}[htb]\centering
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{bicycle_hill.png}
+    \caption{Grade \(0\%\) (flat).}\label{fig:grade0}
+  \end{minipage}\hfill
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{bicycle_hill_10pct.png}
+    \caption{Grade \(+10\%\) (uphill).}\label{fig:grade10}
+  \end{minipage}\\[0.75em]
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{bicycle_hill_m10pct.png}
+    \caption{Grade \(-10\%\) (downhill).}\label{fig:grade-10}
+  \end{minipage}\hfill
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{bicycle_hill_20pct.png}
+    \caption{Grade \(+20\%\) (steep uphill).}\label{fig:grade20}
+  \end{minipage}
+\end{figure}
+
+\subsubsection{Discussion}
+Intuition matches the physics: uphill reduces terminal speed; downhill increases it.
+\begin{itemize}[leftmargin=*]
+  \item How grade changes terminal velocity. At equilibrium \(dv/dt\simeq 0\),
+  \[
+  \frac{P}{m v_t} \;=\; \frac{1}{2}\frac{C_D\rho A}{m}v_t^2
+  \;+\; \frac{\eta A}{m h}v_t
+  \;+\; g\sin\theta ,
+  \]
+  a general balance between power input and losses. Increasing \(\sin\theta\) (uphill) shifts the balance to a lower \(v_t\); negative \(\sin\theta\) (downhill) to a higher \(v_t\).
+  \item Viscous vs quadratic drag. The linear term is negligible at cycling speeds; e.g. at \(v=\SI{10}{m/s}\),
+  the quadratic term contributes \(\approx \SI{2.6e-1}{m/s^2}\) while the viscous term contributes \(\approx \SI{4.7e-7}{m/s^2}\) (over \(5\times10^5\) times smaller).
+  \item When does the rider slow down immediately? At \(t=0\) with \(v_0=\SI{4}{m/s}\),
+  \[
+  \left.\frac{dv}{dt}\right|_{t=0}\!=\frac{P}{m v_0}
+  - \frac{1}{2}\frac{C_D\rho A}{m}v_0^2
+  - \frac{\eta A}{m h}v_0
+  - g\sin\theta .
+  \]
+  Using the parameters above, the first three terms give \(\approx \SI{1.387}{m/s^2}\). Thus the motion turns negative when
+  \(g\sin\theta > \SI{1.387}{m/s^2}\Rightarrow \sin\theta \gtrsim 0.141\), i.e.\ a grade \(\gtrsim 14\%\).
+  This matches the strong slowdown seen at \(+20\%\) (Fig.~\ref{fig:grade20}) and explains why \(+10\%\) (Fig.~\ref{fig:grade10}) still reaches a modest \(v_t\).
+  \item Is there a grade where the rider cannot maintain \(v_0=\SI{4}{m/s}\)?
+  Yes, any grade above \(\sim14\%\) makes \(dv/dt<0\) at start, so the cyclist slows below \(v_0\).
+  \item Downhill behavior. With \(\sin\theta<0\) (Fig.~\ref{fig:grade-10}), gravity aids motion and \(v_t\) increases; it still levels off because quadratic drag grows as \(v^2\).
+\end{itemize}
+
+%==============================
+% Task 2
+%==============================
+\section{Random Walk (Single Walker)}
+
+\subsection{Problem summary}
+We simulate a one–dimensional random walk of \(n\) steps. The walker starts at \(x_0=0\) and takes unit steps of \(\pm1\) with equal probability at each time step. The goal is to generate and plot position versus step number for two independent walks with \(n=100\).
+
+\paragraph{Implementation:}
+\begin{itemize}[leftmargin=*]
+  \item Initialize \(x=0\); store the starting point so the curve includes step \(0\).
+  \item For each step \(1\ldots n\): choose \(+1\) or \(-1\) uniformly at random and update \(x\).
+  \item Create the step index \(\{0,\ldots,n\}\) and plot position vs.\ step number.
+  \item Run the program twice to produce two independent realizations (\texttt{random1.png}, \texttt{random2.png}).
+\end{itemize}
+
+\subsection{Results}
+\begin{figure}[htb]\centering
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{random1.png}
+    \caption{Random walk A (\(n=100\)).}
+    \label{fig:rw1}
+  \end{minipage}\hfill
+  \begin{minipage}{0.48\linewidth}\centering
+    \includegraphics[width=\linewidth]{random2.png}
+    \caption{Random walk B (\(n=100\)).}
+    \label{fig:rw2}
+  \end{minipage}
+\end{figure}
+
+\subsection{Discussion}
+Both trajectories begin at \(0\) and then wander due to the sequence of \(\pm1\) steps. Although each step has zero mean, individual paths are irregular and can drift positive or negative for many steps in a row. Over many iterations, we expect the average position \(\langle x_n\rangle\) to stay near zero, while the typical spread (e.g., \(\sqrt{\langle x_n^2\rangle}\)) grows with \(\sqrt{n}\); the two example paths in Figs.~\ref{fig:rw1}--\ref{fig:rw2} show how different outcomes can be, even with identical rules.
+
+%==============================
+% Task 3
+%==============================
+\section{Group of Random Walkers}
+
+\subsection{Problem summary}
+We simulate a group of \(N_{\text{walkers}}=500\) independent one–dimensional random walkers, each starting at \(x_0=0\) and taking unit steps of \(\pm1\) with equal probability for \(n=100\) steps. At each step \(n\) we record the group statistics \(\langle x_n\rangle\) (mean displacement) and \(\langle x_n^2\rangle\) (mean squared displacement). Code: \texttt{random.py}.  % code used
+% (PNG 'random3.png' produced by the script.)
+% (Code reference) 
+
+\paragraph{Implementation:}
+\begin{itemize}[leftmargin=*]
+  \item For each walker: build a list of positions \([x_0,\ldots,x_n]\) by adding \(\pm1\).
+  \item For each step index \(n\): collect all walkers’ positions at that step and compute
+        \(\langle x_n\rangle\) and \(\langle x_n^2\rangle\).
+  \item Plot \(\langle x_n^2\rangle\) vs.\ step number \(n\) (saved as \texttt{random3.png}).
+\end{itemize}
+
+\subsection{Results}
+\begin{figure}[htb]\centering
+  \includegraphics[width=0.50\linewidth]{random3.png}
+  \caption{Mean squared displacement \(\langle x_n^2\rangle\) as a function of step number \(n\) for \(500\) walkers. The curve is approximately linear in \(n\).}
+  \label{fig:msd}
+\end{figure}
+
+\subsection{Discussion}
+\begin{itemize}[leftmargin=*]
+  \item Why \(\langle x_n\rangle \approx 0\): Symmetry. Each step is equally likely to be \(+1\) or \(-1\), so left and right displacements cancel across the group.
+  \item Why \(\langle x_n^2\rangle\) increases: Even with zero mean, walkers spread out from the origin; squaring removes sign and measures the spread.
+  \item Relationship: For a simple unbiased walk with unit steps, \(\langle x_n^2\rangle \approx n\). The plot in Fig.~\ref{fig:msd} shows an approximately straight line with slope near \(1\), matching expectations.
+\end{itemize}
+
+\end{document}
